@@ -104,16 +104,21 @@ $(function() {
         const title = $("#title").val().trim();
         const description = $("#description").val().trim();
         const goal = parseInt($("#goal").val());
+        const durationValue = parseInt($("#duration-value").val());
+        const durationUnit = $("#duration-unit").val();
         
-        if (!title || !description || isNaN(goal) || goal <= 0) {
-            // You could add a notification here
+        if (!title || !description || isNaN(goal) || goal <= 0 || isNaN(durationValue) || durationValue <= 0) {
             return;
         }
         
         $.post('https://ss-gosendme/createFundraiser', JSON.stringify({
             title: title,
             description: description,
-            goal: goal
+            goal: goal,
+            duration: {
+                value: durationValue,
+                unit: durationUnit
+            }
         }));
         
         // Reset form
@@ -175,6 +180,27 @@ function loadAllFundraisers() {
         fundraisers.forEach(fundraiser => {
             const progressPercentage = Math.min((fundraiser.current_amount / fundraiser.goal) * 100, 100);
             
+            // Calculate time remaining if expires_at exists
+            let timeRemainingHtml = '';
+            if (fundraiser.expires_at) {
+                const expiryDate = new Date(fundraiser.expires_at);
+                const now = new Date();
+                const timeRemaining = expiryDate - now;
+                
+                if (timeRemaining > 0) {
+                    const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    timeRemainingHtml = `<div class="time-remaining">Time remaining: `;
+                    if (days > 0) timeRemainingHtml += `${days}d `;
+                    if (hours > 0 || days > 0) timeRemainingHtml += `${hours}h `;
+                    timeRemainingHtml += `${minutes}m</div>`;
+                } else {
+                    timeRemainingHtml = `<div class="time-remaining expired">Expired</div>`;
+                }
+            }
+            
             fundraisersHtml += `
                 <div class="fundraiser-card" data-id="${fundraiser.id}">
                     <h3>${fundraiser.title}</h3>
@@ -182,6 +208,7 @@ function loadAllFundraisers() {
                     <div class="fundraiser-details">
                         ${fundraiser.description.length > 100 ? fundraiser.description.substring(0, 100) + '...' : fundraiser.description}
                     </div>
+                    ${timeRemainingHtml}
                     <div class="fundraiser-progress">
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progressPercentage}%"></div>

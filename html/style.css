@@ -402,3 +402,40 @@ body {
         width: 95%;
     }
 }
+
+.duration-container {
+    display: flex;
+    gap: 10px;
+}
+
+.duration-container input {
+    flex: 1;
+}
+
+.duration-container select {
+    width: 40%;
+    padding: 12px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #444;
+    color: var(--text-color);
+    font-size: 16px;
+}
+
+.time-remaining {
+    font-size: 12px;
+    color: #aaa;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+}
+
+.time-remaining:before {
+    content: "\f017"; /* Font Awesome clock icon */
+    font-family: "Font Awesome 5 Free";
+    margin-right: 5px;
+}
+
+.time-remaining.expired {
+    color: #f44336;
+}

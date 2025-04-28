@@ -15,6 +15,7 @@ local function InitializeDatabase()
             goal INT NOT NULL,
             current_amount INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NULL DEFAULT NULL,
             active BOOLEAN DEFAULT TRUE
         )
     ]], {})
@@ -87,7 +88,7 @@ end)
 
 -- Create new fundraiser
 RegisterNetEvent('ss-gosendme:createFundraiser')
-AddEventHandler('ss-gosendme:createFundraiser', function(title, description, goal)
+AddEventHandler('ss-gosendme:createFundraiser', function(title, description, goal, duration)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     
@@ -95,6 +96,21 @@ AddEventHandler('ss-gosendme:createFundraiser', function(title, description, goa
     
     local identifier = Player.PlayerData.citizenid
     local playerName = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname
+    
+    -- Calculate expiration time
+    local expiresAt = os.time()
+    if duration then
+        if duration.unit == "minutes" then
+            expiresAt = expiresAt + (duration.value * 60)
+        elseif duration.unit == "hours" then
+            expiresAt = expiresAt + (duration.value * 3600)
+        elseif duration.unit == "days" then
+            expiresAt = expiresAt + (duration.value * 86400)
+        end
+    end
+    
+    -- Format expiration time for MySQL
+    local expiresAtFormatted = os.date("%Y-%m-%d %H:%M:%S", expiresAt)
     
     -- Check if player has reached maximum fundraisers limit
     exports.oxmysql:execute('SELECT COUNT(*) as count FROM fundraisers WHERE creator_identifier = ? AND active = 1', {identifier}, function(result)
@@ -104,8 +120,8 @@ AddEventHandler('ss-gosendme:createFundraiser', function(title, description, goa
         end
         
         -- Create the fundraiser
-        exports.oxmysql:insert('INSERT INTO fundraisers (creator_identifier, creator_name, title, description, goal) VALUES (?, ?, ?, ?, ?)', 
-        {identifier, playerName, title, description, goal}, function(id)
+        exports.oxmysql:insert('INSERT INTO fundraisers (creator_identifier, creator_name, title, description, goal, expires_at) VALUES (?, ?, ?, ?, ?, ?)', 
+        {identifier, playerName, title, description, goal, expiresAtFormatted}, function(id)
             if id > 0 then
                 TriggerClientEvent('QBCore:Notify', src, 'Fundraiser created successfully!', 'success')
                 
@@ -115,6 +131,7 @@ AddEventHandler('ss-gosendme:createFundraiser', function(title, description, goa
                     '**Title:** ' .. title .. 
                     '\n**Created By:** ' .. playerName .. 
                     '\n**Goal:** $' .. goal .. 
+                    '\n**Expires:** ' .. expiresAtFormatted ..
                     '\n**Description:** ' .. description)
                 end
                 
@@ -357,11 +374,49 @@ function CheckPendingPayments()
     end)
 end
 
+function CheckExpiredFundraisers()
+    local currentDateTime = os.date("%Y-%m-%d %H:%M:%S")
+    
+    exports.oxmysql:execute('SELECT id, title, creator_name, creator_identifier, current_amount FROM fundraisers WHERE active = 1 AND expires_at IS NOT NULL AND expires_at < ?', 
+    {currentDateTime}, function(expiredFundraisers)
+        if expiredFundraisers and #expiredFundraisers > 0 then
+            for _, fundraiser in ipairs(expiredFundraisers) do
+                -- Mark fundraiser as inactive
+                exports.oxmysql:execute('UPDATE fundraisers SET active = 0 WHERE id = ?', {fundraiser.id})
+                
+                -- Send webhooks or notifications
+                if Config.UseDiscordWebhook then
+                    SendDiscordWebhook('Fundraiser Expired', 
+                    '**Title:** ' .. fundraiser.title .. 
+                    '\n**Created By:** ' .. fundraiser.creator_name .. 
+                    '\n**Final Amount:** $' .. fundraiser.current_amount)
+                end
+                
+                -- Handle money transfer to creator
+                local creatorPlayer = QBCore.Functions.GetPlayerByCitizenId(fundraiser.creator_identifier)
+                if creatorPlayer then
+                    -- Creator is online, add money directly
+                    creatorPlayer.Functions.AddMoney('bank', fundraiser.current_amount, 'fundraiser-expired')
+                    TriggerClientEvent('QBCore:Notify', creatorPlayer.PlayerData.source, 'Your fundraiser "' .. fundraiser.title .. '" has expired! $' .. fundraiser.current_amount .. ' has been transferred to your bank account.', 'success')
+                else
+                    -- Creator is offline, store pending payment
+                    exports.oxmysql:insert('INSERT INTO fundraiser_pending_payments (fundraiser_id, recipient_identifier, amount) VALUES (?, ?, ?)', 
+                    {fundraiser.id, fundraiser.creator_identifier, fundraiser.current_amount})
+                end
+            end
+            
+            -- Notify all players to refresh their UI
+            TriggerClientEvent('ss-gosendme:refreshFundraisers', -1)
+        end
+    end)
+end
+
 -- Run the pending payment check function once per minute
 CreateThread(function()
     while true do
         CheckPendingPayments()
-        Wait(60000) -- Check every minute if it's time to process payments
+        CheckExpiredFundraisers() -- Add this line
+        Wait(60000) -- Check every minute
     end
 end)
 

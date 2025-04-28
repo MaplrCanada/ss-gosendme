@@ -45,7 +45,7 @@ RegisterNUICallback('getFundraiserDetails', function(data, cb)
 end)
 
 RegisterNUICallback('createFundraiser', function(data, cb)
-    TriggerServerEvent('ss-gosendme:createFundraiser', data.title, data.description, data.goal)
+    TriggerServerEvent('ss-gosendme:createFundraiser', data.title, data.description, data.goal, data.duration)
     cb('ok')
 end)
 

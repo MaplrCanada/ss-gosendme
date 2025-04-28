@@ -1,0 +1,105 @@
+<!-- html/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBCore Fundraisers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <div id="fundraiser-container">
+        <div id="header">
+            <h1><i class="fas fa-hand-holding-heart"></i> Community Fundraisers</h1>
+            <div id="close-btn"><i class="fas fa-times"></i></div>
+        </div>
+        
+        <div id="menu-tabs">
+            <div class="tab active" data-tab="browse">Browse Fundraisers</div>
+            <div class="tab" data-tab="my-fundraisers">My Fundraisers</div>
+            <div class="tab" data-tab="create">Create Fundraiser</div>
+            <div class="tab admin-tab" data-tab="admin" style="display: none;">Admin Panel</div>
+        </div>
+        
+        <div id="content">
+            <!-- Browse Fundraisers Tab -->
+            <div class="tab-content active" id="browse-content">
+                <div class="fundraisers-list" id="all-fundraisers">
+                    <!-- Fundraisers will be loaded here dynamically -->
+                    <div class="loading">Loading fundraisers...</div>
+                </div>
+            </div>
+            
+            <!-- My Fundraisers Tab -->
+            <div class="tab-content" id="my-fundraisers-content">
+                <div class="fundraisers-list" id="player-fundraisers">
+                    <!-- Player's fundraisers will be loaded here dynamically -->
+                    <div class="loading">Loading your fundraisers...</div>
+                </div>
+            </div>
+            
+            <!-- Create Fundraiser Tab -->
+            <div class="tab-content" id="create-content">
+                <form id="create-fundraiser-form">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" placeholder="Fundraiser Title" maxlength="100" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea id="description" name="description" placeholder="Describe your fundraiser and why people should contribute..." rows="5" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="goal">Goal Amount ($):</label>
+                        <input type="number" id="goal" name="goal" placeholder="1000" min="1" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-create">Create Fundraiser</button>
+                </form>
+            </div>
+            
+            <!-- Admin Panel Tab -->
+            <div class="tab-content" id="admin-content">
+                <div class="admin-controls">
+                    <h3>Admin Fundraiser Management</h3>
+                    <div class="fundraisers-list" id="admin-fundraisers">
+                        <!-- All fundraisers will be loaded here for admin management -->
+                        <div class="loading">Loading all fundraisers...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fundraiser Details Modal -->
+            <div id="fundraiser-details-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <div id="fundraiser-details">
+                        <!-- Fundraiser details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contribution Modal -->
+            <div id="contribution-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Make a Contribution</h2>
+                    <div id="contribution-form">
+                        <div class="form-group">
+                            <label for="contribution-amount">Amount ($):</label>
+                            <input type="number" id="contribution-amount" min="1" placeholder="Amount" required>
+                        </div>
+                        <button type="button" id="contribute-btn" class="btn">Contribute</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
